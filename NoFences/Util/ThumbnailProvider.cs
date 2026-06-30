@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,6 +33,9 @@ namespace NoFences.Util
         private readonly IDictionary<string, ThumbnailState> iconCache = new Dictionary<string, ThumbnailState>();
         public event EventHandler IconThumbnailLoaded;
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
         public bool IsSupported(string path)
         {
             return SupportedExtensions.Any(ext => path.EndsWith(ext));
@@ -57,20 +61,39 @@ namespace NoFences.Util
             Task.Run(() =>
             {
                 semaphore.Wait();
-                using (MemoryStream ms = new MemoryStream(File.ReadAllBytes(path)))
+                try
                 {
+                    using (MemoryStream ms = new MemoryStream(File.ReadAllBytes(path)))
                     using (var img = Image.FromStream(ms))
+                    using (var thumb = (Bitmap)img.GetThumbnailImage(32, 32, () => false, IntPtr.Zero))
                     {
-                        var thumb = (Bitmap)img.GetThumbnailImage(32, 32, () => false, IntPtr.Zero);
-                        var icon = Icon.FromHandle(thumb.GetHicon());
-                        state.icon = icon;
+                        state.icon = CreateIconFromBitmap(thumb);
                         IconThumbnailLoaded(this, new EventArgs());
-                        semaphore.Release();
-                        return icon;
                     }
+                }
+                catch
+                {
+                    // Keep the associated file icon when thumbnail generation fails.
+                }
+                finally
+                {
+                    semaphore.Release();
                 }
             });
             return state;
+        }
+
+        private static Icon CreateIconFromBitmap(Bitmap bitmap)
+        {
+            var handle = bitmap.GetHicon();
+            try
+            {
+                return (Icon)Icon.FromHandle(handle).Clone();
+            }
+            finally
+            {
+                DestroyIcon(handle);
+            }
         }
 
     }

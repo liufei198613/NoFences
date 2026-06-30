@@ -1,8 +1,10 @@
 ﻿using NoFences.Model;
+using NoFences.Util;
+using NoFences.Win32;
 using System;
+using System.IO;
 using System.Threading;
 using System.Windows.Forms;
-using NoFences.Win32;
 
 namespace NoFences
 {
@@ -25,11 +27,26 @@ namespace NoFences
                     Application.EnableVisualStyles();
                     Application.SetCompatibleTextRenderingDefault(false);
 
-                    FenceManager.Instance.LoadFences();
-                    if (Application.OpenForms.Count == 0)
-                        FenceManager.Instance.CreateFence("First fence");
+                    // Initialize system tray icon
+                    var exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                    var exeDir = Path.GetDirectoryName(exePath);
+                    var iconPath = Path.Combine(exeDir, "resources", "image.png");
+                    
+                    // Check if resources exists in project structure (development)
+                    if (!File.Exists(iconPath))
+                    {
+                        var projectRoot = Directory.GetParent(exeDir).Parent.Parent.FullName;
+                        iconPath = Path.Combine(projectRoot, "resources", "image.png");
+                    }
 
-                    Application.Run();
+                    using var trayIcon = new TrayIconManager(iconPath);
+                    AppSettings.Current.ApplyRuntimeSettings();
+
+                    var loadedFenceCount = FenceManager.Instance.LoadFences();
+                    if (loadedFenceCount == 0)
+                        FenceManager.Instance.CreateFence("默认分区");
+
+                    Application.Run(new ApplicationContext());
                 }
             }
         }

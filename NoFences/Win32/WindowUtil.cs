@@ -8,6 +8,7 @@ namespace NoFences.Win32
         public const int WM_NCHITTEST = 0x84;          // variables for dragging the form
         public const int HTCLIENT = 0x1;
         public const int HTCAPTION = 0x2;
+        public const int HTTRANSPARENT = -1;
         public const int HTLEFT = 10;
         public const int HTRIGHT = 11;
         public const int HTTOP = 12;

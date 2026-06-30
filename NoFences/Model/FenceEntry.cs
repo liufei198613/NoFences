@@ -54,9 +54,9 @@ namespace NoFences.Model
                 try
                 {
                     if (Type == EntryType.File)
-                        Process.Start(Path);
+                        Process.Start(new ProcessStartInfo(Path) { UseShellExecute = true });
                     else if (Type == EntryType.Folder)
-                        Process.Start("explorer.exe", Path);
+                        Process.Start(new ProcessStartInfo("explorer.exe", Path) { UseShellExecute = true });
                 }
                 catch (Exception e)
                 {
